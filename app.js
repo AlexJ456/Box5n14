@@ -28,6 +28,42 @@ document.addEventListener('DOMContentLoaded', () => {
         startTime: null
     };
 
+    // Settings persistence
+    const STORAGE_KEY = 'boxBreathingSettings';
+
+    function saveSettings() {
+        try {
+            const settings = {
+                soundEnabled: state.soundEnabled,
+                phaseTime: state.phaseTime
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+        } catch (e) {
+            // localStorage may be unavailable (private browsing, quota exceeded)
+        }
+    }
+
+    function loadSettings() {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const settings = JSON.parse(saved);
+                if (typeof settings.soundEnabled === 'boolean') {
+                    state.soundEnabled = settings.soundEnabled;
+                }
+                if (typeof settings.phaseTime === 'number' && settings.phaseTime >= 3 && settings.phaseTime <= 6) {
+                    state.phaseTime = settings.phaseTime;
+                    state.countdown = settings.phaseTime;
+                }
+            }
+        } catch (e) {
+            // localStorage may be unavailable or data corrupted
+        }
+    }
+
+    // Load saved settings on startup
+    loadSettings();
+
     let wakeLock = null;
     let audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -259,6 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function toggleSound() {
         state.soundEnabled = !state.soundEnabled;
+        saveSettings();
         render();
     }
 
@@ -559,7 +596,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const phaseTimeSlider = document.getElementById('phase-time-slider');
             phaseTimeSlider.addEventListener('input', function() {
                 state.phaseTime = parseInt(this.value);
+                state.countdown = state.phaseTime;
                 document.getElementById('phase-time-value').textContent = state.phaseTime;
+                saveSettings();
             });
             document.getElementById('preset-2min').addEventListener('click', () => startWithPreset(2));
             document.getElementById('preset-5min').addEventListener('click', () => startWithPreset(5));
